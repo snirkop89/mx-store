@@ -47,6 +47,8 @@ func main() {
 	repo := repository.NewRepository(db)
 	handler := handlers.NewHandler(repo)
 
+	r.HandleFunc("/seed-products", handler.SeedProducts).Methods("POST")
+
 	slog.Info("Starting server", "addr", ":5000")
 	http.ListenAndServe(":5000", r)
 }
