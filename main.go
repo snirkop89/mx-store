@@ -9,6 +9,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/snirkop89/shopping-app/pkg/handlers"
+	"github.com/snirkop89/shopping-app/pkg/repository"
 )
 
 var db *sql.DB
@@ -41,6 +43,9 @@ func main() {
 	// Setup Static folder for static files and images
 	fs := http.FileServer(http.Dir("./static"))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
+
+	repo := repository.NewRepository(db)
+	handler := handlers.NewHandler(repo)
 
 	slog.Info("Starting server", "addr", ":5000")
 	http.ListenAndServe(":5000", r)
