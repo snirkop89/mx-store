@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/go-faker/faker/v3"
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/snirkop89/shopping-app/pkg/models"
 	"github.com/snirkop89/shopping-app/pkg/repository"
 	"golang.org/x/text/cases"
@@ -129,6 +131,23 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	// Fake latency
 	// time.Sleep(4 * time.Second)
 	tmpl.ExecuteTemplate(w, "productRows", data)
+}
+
+func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	productID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.Repo.Product.GetProductByID(productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl.ExecuteTemplate(w, "viewProduct", product)
 }
 
 func makeRange(min, max int) []int {
