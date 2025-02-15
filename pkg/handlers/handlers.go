@@ -325,6 +325,37 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	sendProductMessages(w, nil, updatedProduct)
 }
 
+func (h Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	productID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.Repo.Product.GetProductByID(productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = h.Repo.Product.DeleteProduct(productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Remove product image
+	productImagePath := filepath.Join("static/uploads", product.ProductImage)
+	err = os.Remove(productImagePath)
+	if err != nil {
+		log.Printf("Failed removing product %s image: %v\n", productID, err)
+	}
+
+	time.Sleep(2 * time.Second)
+	tmpl.ExecuteTemplate(w, "allProducts", nil)
+}
+
 func makeRange(min, max int) []int {
 	rangeArray := make([]int, max-min+1)
 	for i := range rangeArray {
