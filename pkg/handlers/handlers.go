@@ -268,6 +268,63 @@ func (h *Handler) EditProductView(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "editProduct", product)
 }
 
+func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	productID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var responseMessages []string
+	// Check for empty fields
+	productName := r.FormValue("product_name")
+	productPrice := r.FormValue("price")
+	productDescription := r.FormValue("description")
+
+	if productName == "" || productPrice == "" || productDescription == "" {
+		responseMessages = append(responseMessages, "All fields are required")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+	price, err := strconv.ParseFloat(r.FormValue("price"), 64)
+	if err != nil {
+		responseMessages = append(responseMessages, "Invalid price")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	product := models.Product{
+		ProductID:   productID,
+		ProductName: productName,
+		Price:       price,
+		Description: productDescription,
+	}
+
+	err = h.Repo.Product.UpdateProduct(&product)
+	if err != nil {
+		responseMessages = append(responseMessages, err.Error())
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	updatedProduct, err := h.Repo.Product.GetProductByID(productID)
+	if err != nil {
+		responseMessages = append(responseMessages, err.Error())
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	time.Sleep(2 * time.Second)
+	sendProductMessages(w, nil, updatedProduct)
+}
+
 func makeRange(min, max int) []int {
 	rangeArray := make([]int, max-min+1)
 	for i := range rangeArray {
