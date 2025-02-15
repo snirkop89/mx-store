@@ -52,6 +52,9 @@ func main() {
 	r.HandleFunc("/allproducts", handler.AllProductsView).Methods("GET")
 	r.HandleFunc("/products", handler.ListProducts).Methods("GET")
 	r.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET")
+	r.HandleFunc("/createproduct", handler.CreateProductView).Methods("GET")
+	r.HandleFunc("/products", handler.CreateProduct).Methods("POST")
+	r.HandleFunc("/editproduct/{id}", handler.EditProductView).Methods("GET")
 
 	slog.Info("Starting server", "addr", ":5000")
 	http.ListenAndServe(":5000", r)

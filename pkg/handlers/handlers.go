@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -20,6 +24,11 @@ import (
 )
 
 var tmpl *template.Template
+
+type ProductCRUDTemplateData struct {
+	Messages []string
+	Product  *models.Product
+}
 
 type Handler struct {
 	Repo *repository.Repository
@@ -150,10 +159,124 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	tmpl.ExecuteTemplate(w, "viewProduct", product)
 }
 
+func (h *Handler) CreateProductView(w http.ResponseWriter, r *http.Request) {
+	tmpl.ExecuteTemplate(w, "createProduct", nil)
+}
+
+func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	// Parse the multipart form , 10MB max upload size
+	r.ParseMultipartForm(10 << 20)
+
+	// Initialize error messges slice
+	var responseMessages []string
+
+	// Check for empty fields
+	productName := r.FormValue("product_name")
+	productPrice := r.FormValue("price")
+	productDescription := r.FormValue("description")
+
+	if productName == "" || productPrice == "" || productDescription == "" {
+		responseMessages = append(responseMessages, "All fields are required")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	// Process file upload
+	file, handler, err := r.FormFile("product_image")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrMissingFile):
+			responseMessages = append(responseMessages, "Select and Image for the product")
+		default:
+			responseMessages = append(responseMessages, "Error retrieving the file")
+		}
+
+		if len(responseMessages) > 0 {
+			fmt.Println(responseMessages)
+			sendProductMessages(w, responseMessages, nil)
+			return
+		}
+	}
+	defer file.Close()
+
+	uuid, err := uuid.NewRandom()
+	if err != nil {
+		responseMessages = append(responseMessages, "Error generating unique identifier")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+	filename := uuid.String() + filepath.Ext(handler.Filename)
+
+	filePath := filepath.Join("static/uploads", filename)
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		responseMessages = append(responseMessages, "Error saving the file")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, file)
+	if err != nil {
+		log.Println(err)
+		responseMessages = append(responseMessages, "Error saving the file")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	price, err := strconv.ParseFloat(r.FormValue("price"), 64)
+	if err != nil {
+		responseMessages = append(responseMessages, "Invalid price")
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	product := models.Product{
+		ProductName:  productName,
+		Price:        price,
+		Description:  productDescription,
+		ProductImage: filename,
+	}
+
+	err = h.Repo.Product.CreateProduct(&product)
+	if err != nil {
+		responseMessages = append(responseMessages, err.Error())
+		sendProductMessages(w, responseMessages, nil)
+		return
+	}
+
+	// Fake latency
+	time.Sleep(2 * time.Second)
+	sendProductMessages(w, []string{}, &product)
+}
+
+func (h *Handler) EditProductView(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	productID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.Repo.Product.GetProductByID(productID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl.ExecuteTemplate(w, "editProduct", product)
+}
+
 func makeRange(min, max int) []int {
 	rangeArray := make([]int, max-min+1)
 	for i := range rangeArray {
 		rangeArray[i] = min + i
 	}
 	return rangeArray
+}
+
+func sendProductMessages(w http.ResponseWriter, messages []string, product *models.Product) {
+	data := ProductCRUDTemplateData{Messages: messages, Product: product}
+	tmpl.ExecuteTemplate(w, "messages", data)
 }
