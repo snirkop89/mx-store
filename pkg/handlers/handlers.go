@@ -17,8 +17,8 @@ import (
 	"github.com/go-faker/faker/v3"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/snirkop89/shopping-app/pkg/models"
-	"github.com/snirkop89/shopping-app/pkg/repository"
+	"github.com/snirkop89/mx-store/pkg/models"
+	"github.com/snirkop89/mx-store/pkg/repository"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/snirkop89/shopping-app/pkg/models"
+	"github.com/snirkop89/mx-store/pkg/models"
 
 	"github.com/google/uuid"
 )

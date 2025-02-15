@@ -1,4 +1,4 @@
-module github.com/snirkop89/shopping-app
+module github.com/snirkop89/mx-store
 
 go 1.23.4
 

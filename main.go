@@ -9,8 +9,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	"github.com/snirkop89/shopping-app/pkg/handlers"
-	"github.com/snirkop89/shopping-app/pkg/repository"
+	"github.com/snirkop89/mx-store/pkg/handlers"
+	"github.com/snirkop89/mx-store/pkg/repository"
 )
 
 var db *sql.DB
