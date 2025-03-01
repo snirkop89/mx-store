@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -112,6 +113,74 @@ func (h *Handler) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.ExecuteTemplate(w, "cartItems", data)
+}
+
+func (h *Handler) ShoppingCartView(w http.ResponseWriter, r *http.Request) {
+	tmpl.ExecuteTemplate(w, "shoppingCart", cartItems)
+}
+
+func (h *Handler) UpdateOrderItemQuantity(w http.ResponseWriter, r *http.Request) {
+	// Get product ID and action from URL parameters
+	var cartMessage string
+	var refreshCartList bool // Signals a refresh of cart items when an item is removed
+
+	productID, err := uuid.Parse(r.URL.Query().Get("product_id"))
+	if err != nil {
+		http.Error(w, "Invalid product ID", http.StatusBadRequest)
+		return
+	}
+
+	action := r.URL.Query().Get("action")
+
+	// find the order item
+	itemIndex := -1
+	for i, item := range cartItems {
+		if item.ProductID == productID {
+			itemIndex = i
+			break
+		}
+	}
+	if itemIndex == -1 {
+		http.Error(w, "Product not found in order", http.StatusNotFound)
+		return
+	}
+
+	// Update quantity based on action
+	switch action {
+	case "add":
+		cartItems[itemIndex].Quantity++
+	case "subtract":
+		cartItems[itemIndex].Quantity--
+		if cartItems[itemIndex].Quantity == 0 {
+			// Remove items if quantity is 0
+			cartItems = slices.Delete(cartItems, itemIndex, itemIndex+1)
+			refreshCartList = true
+		}
+	case "remove":
+		// Remove items regardless of quantity
+		cartItems = slices.Delete(cartItems, itemIndex, itemIndex+1)
+		refreshCartList = true
+	default:
+		cartMessage = "Invalid Action"
+	}
+
+	data := struct {
+		OrderItems       []models.OrderItem
+		Message          string
+		AlertType        string
+		TotalCost        float64
+		Action           string
+		RefreshCartItems bool
+	}{
+		OrderItems:       cartItems,
+		Message:          cartMessage,
+		AlertType:        "info",
+		TotalCost:        getTotalCartCost(),
+		Action:           action,
+		RefreshCartItems: refreshCartList,
+	}
+
+	tmpl.ExecuteTemplate(w, "updateShoppingCart", data)
 }
 
 func getTotalCartCost() float64 {
