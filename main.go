@@ -47,6 +47,11 @@ func main() {
 	repo := repository.NewRepository(db)
 	handler := handlers.NewHandler(repo)
 
+	// User shopping Routes
+	r.HandleFunc("/", handler.ShoppingHomepage).Methods("GET")
+	r.HandleFunc("/shoppingitems", handler.ShoppingItemsView).Methods("GET")
+
+	// Admin Routes
 	r.HandleFunc("/seed-products", handler.SeedProducts).Methods("POST")
 	r.HandleFunc("/manageproducts", handler.ProductsPage).Methods("GET")
 	r.HandleFunc("/allproducts", handler.AllProductsView).Methods("GET")
