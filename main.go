@@ -50,6 +50,8 @@ func main() {
 	// User shopping Routes
 	r.HandleFunc("/", handler.ShoppingHomepage).Methods("GET")
 	r.HandleFunc("/shoppingitems", handler.ShoppingItemsView).Methods("GET")
+	r.HandleFunc("/cartitems", handler.CartView).Methods("GET")
+	r.HandleFunc("/addtocart/{product_id}", handler.AddToCart).Methods("POST")
 
 	// Admin Routes
 	r.HandleFunc("/seed-products", handler.SeedProducts).Methods("POST")
